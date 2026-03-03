@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Routine App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --accent: #c8f565;
+      --accent-dim: rgba(200,245,101,0.12);
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --danger: #ff5c5c;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 80px 0;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      padding: 28px 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .header span {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    /* BOTTOM NAV */
+    .nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+    }
+    .nav button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 12px 0;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s;
+    }
+    .nav button.active { color: var(--accent); }
+    .nav button svg { width: 20px; height: 20px; }
+
+    /* PAGES */
+    .page { display: none; padding: 0 20px; }
+    .page.active { display: block; }
+
+    /* ROUTINE CARDS */
+    .routine-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+
+    .routine-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      animation: slideUp 0.3s ease both;
+    }
+    .routine-card:hover { border-color: var(--accent); background: var(--surface2); }
+
+    .routine-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .routine-info p { font-size: 12px; color: var(--text-muted); }
+
+    .routine-actions { display: flex; gap: 8px; align-items: center; }
+
+    .btn-run {
+      background: var(--accent);
+      color: #0f0f0f;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-run:hover { opacity: 0.85; }
+
+    .btn-icon {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-icon:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; }
+    .empty p { font-size: 13px; line-height: 1.6; }
+
+    /* ADD ROUTINE FORM */
+    .form-section { margin-top: 8px; }
+    .form-section label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .form-section input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 16px;
+    }
+    .form-section input:focus { border-color: var(--accent); }
+    .form-section input::placeholder { color: var(--text-muted); }
+
+    /* STEPS BUILDER */
+    .steps-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .step-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      animation: slideUp 0.2s ease both;
+    }
+    .step-num {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-item input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+      margin-bottom: 0 !important;
+    }
+    .step-dur {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      width: 64px;
+      text-align: center;
+      outline: none;
+      margin-bottom: 0 !important;
+    }
+    .step-dur:focus { border-color: var(--accent); color: var(--text); }
+
+    .btn-add-step {
+      width: 100%;
+      background: var(--accent-dim);
+      border: 1px dashed rgba(200,245,101,0.3);
+      border-radius: 12px;
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 20px;
+    }
+    .btn-add-step:hover { background: rgba(200,245,101,0.2); }
+
+    .btn-save {
+      width: 100%;
+      background: var(--accent);
+      color: #0f0f0f;
+      border: none;
+      border-radius: 14px;
+      padding: 15px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 20px;
+    }
+    .btn-save:hover { opacity: 0.85; }
+
+    /* RUNNER */
+    #runner-page { text-align: center; padding: 20px; }
+    .runner-header { margin-bottom: 32px; }
+    .runner-header h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    .runner-header p { font-size: 13px; color: var(--text-muted); }
+
+    .timer-ring {
+      position: relative;
+      width: 200px; height: 200px;
+      margin: 0 auto 32px;
+    }
+    .timer-ring svg { transform: rotate(-90deg); }
+    .timer-ring circle {
+      fill: none;
+      stroke-width: 8;
+    }
+    .timer-bg { stroke: var(--surface2); }
+    .timer-progress {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear;
+    }
+    .timer-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .timer-text .time {
+      font-family: 'DM Serif Display', serif;
+      font-size: 42px;
+      line-height: 1;
+    }
+    .timer-text .step-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .step-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .step-progress {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .runner-controls { display: flex; gap: 12px; justify-content: center; }
+    .btn-ctrl {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 14px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-ctrl:hover { background: var(--surface2); border-color: var(--accent); }
+    .btn-ctrl.primary { background: var(--accent); color: #0f0f0f; border-color: var(--accent); }
+    .btn-ctrl.primary:hover { opacity: 0.85; }
+
+    .steps-progress {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .step-dot.done { background: var(--accent); }
+    .step-dot.current { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+    /* COMPLETION */
+    .completion {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .completion .icon { font-size: 64px; margin-bottom: 20px; }
+    .completion h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .completion p { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+
+    /* ANIMATIONS */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>My Routines</h1>
+  <span id="date-display"></span>
+</div>
+
+<!-- PAGES -->
+
+<!-- HOME PAGE -->
+<div class="page active" id="home-page">
+  <div class="section-title">Your Routines</div>
+  <div class="routine-list" id="routine-list"></div>
+</div>
+
+<!-- ADD PAGE -->
+<div class="page" id="add-page">
+  <div class="form-section">
+    <label>Routine Name</label>
+    <input type="text" id="routine-name" placeholder="e.g. Morning Routine" />
+
+    <label>Steps</label>
+    <div class="steps-list" id="steps-list"></div>
+    <button class="btn-add-step" onclick="addStep()">+ Add Step</button>
+
+    <button class="btn-save" onclick="saveRoutine()">Save Routine</button>
+  </div>
+</div>
+
+<!-- RUNNER PAGE -->
+<div class="page" id="runner-page">
+  <div id="runner-content"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="active" onclick="showPage('home')" id="nav-home">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    Home
+  </button>
+  <button onclick="showPage('add')" id="nav-add">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    New
+  </button>
+  <button onclick="showPage('runner')" id="nav-runner">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+    Run
+  </button>
+</nav>
+
+<script>
+  // Init Telegram WebApp
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  }
+
+  // Date display
+  const now = new Date();
+  document.getElementById('date-display').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  // State
+  let routines = JSON.parse(localStorage.getItem('routines') || '[]');
+  let currentRoutine = null;
+  let currentStep = 0;
+  let timer = null;
+  let timeLeft = 0;
+  let isPaused = false;
+  let totalTime = 0;
+
+  // Save routines
+  function save() {
+    localStorage.setItem('routines', JSON.stringify(routines));
+  }
+
+  // Page navigation
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(page + '-page').classList.add('active');
+    document.getElementById('nav-' + page).classList.add('active');
+
+    const header = document.querySelector('.header h1');
+    if (page === 'home') { header.textContent = 'My Routines'; renderRoutines(); }
+    if (page === 'add')  { header.textContent = 'New Routine'; resetForm(); }
+    if (page === 'runner') { header.textContent = 'Running'; }
+  }
+
+  // Render routines list
+  function renderRoutines() {
+    const list = document.getElementById('routine-list');
+    if (routines.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="icon">🌿</div>
+          <h3>No routines yet</h3>
+          <p>Tap <strong>New</strong> below to create your first routine.</p>
+        </div>`;
+      return;
+    }
+    list.innerHTML = routines.map((r, i) => {
+      const totalMins = r.steps.reduce((s, st) => s + (parseInt(st.duration) || 0), 0);
+      return `
+        <div class="routine-card">
+          <div class="routine-info">
+            <h3>${r.name}</h3>
+            <p>${r.steps.length} steps · ${totalMins} min</p>
+          </div>
+          <div class="routine-actions">
+            <button class="btn-run" onclick="startRoutine(${i})">▶ Run</button>
+            <button class="btn-icon" onclick="deleteRoutine(${i})">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+              </svg>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Add step input
+  function addStep() {
+    const list = document.getElementById('steps-list');
+    const idx = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'step-item';
+    div.innerHTML = `
+      <div class="step-num">${idx}</div>
+      <input type="text" placeholder="Step name..." />
+      <input type="number" class="step-dur" placeholder="min" min="1" max="120" />
+      <button class="btn-icon" onclick="removeStep(this)" style="flex-shrink:0">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>`;
+    list.appendChild(div);
+  }
+
+  function removeStep(btn) {
+    btn.closest('.step-item').remove();
+    // renumber
+    document.querySelectorAll('.step-num').forEach((el, i) => el.textContent = i + 1);
+  }
+
+  function resetForm() {
+    document.getElementById('routine-name').value = '';
+    document.getElementById('steps-list').innerHTML = '';
+    addStep();
+  }
+
+  // Save routine
+  function saveRoutine() {
+    const name = document.getElementById('routine-name').value.trim();
+    if (!name) { alert('Please enter a routine name.'); return; }
+
+    const stepEls = document.querySelectorAll('.step-item');
+    const steps = [];
+    stepEls.forEach(el => {
+      const inputs = el.querySelectorAll('input');
+      const stepName = inputs[0].value.trim();
+      const duration = parseInt(inputs[1].value) || 1;
+      if (stepName) steps.push({ name: stepName, duration });
+    });
+
+    if (steps.length === 0) { alert('Please add at least one step.'); return; }
+
+    routines.push({ name, steps });
+    save();
+    showPage('home');
+  }
+
+  function deleteRoutine(i) {
+    if (confirm(`Delete "${routines[i].name}"?`)) {
+      routines.splice(i, 1);
+      save();
+      renderRoutines();
+    }
+  }
+
+  // RUNNER
+  function startRoutine(i) {
+    currentRoutine = routines[i];
+    currentStep = 0;
+    showPage('runner');
+    runStep();
+  }
+
+  function runStep() {
+    if (!currentRoutine || currentStep >= currentRoutine.steps.length) {
+      showCompletion();
+      return;
+    }
+    isPaused = false;
+    const step = currentRoutine.steps[currentStep];
+    timeLeft = (parseInt(step.duration) || 1) * 60;
+    totalTime = timeLeft;
+    renderRunner();
+    startTimer();
+  }
+
+  function renderRunner() {
+    const step = currentRoutine.steps[currentStep];
+    const dots = currentRoutine.steps.map((_, i) => {
+      let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+      return `<div class="step-dot ${cls}"></div>`;
+    }).join('');
+
+    document.getElementById('runner-content').innerHTML = `
+      <div class="runner-header">
+        <h2>${currentRoutine.name}</h2>
+        <p>Step ${currentStep + 1} of ${currentRoutine.steps.length}</p>
+      </div>
+
+      <div class="timer-ring">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="timer-bg" cx="100" cy="100" r="88" />
+          <circle class="timer-progress" id="timer-circle" cx="100" cy="100" r="88"
+            stroke-dasharray="${2 * Math.PI * 88}"
+            stroke-dashoffset="0" />
+        </svg>
+        <div class="timer-text">
+          <div class="time" id="timer-display">${formatTime(timeLeft)}</div>
+          <div class="step-label">remaining</div>
+        </div>
+      </div>
+
+      <div class="step-name">${step.name}</div>
+      <div class="step-progress">${step.duration} min</div>
+
+      <div class="runner-controls">
+        <button class="btn-ctrl" onclick="stopRunner()">✕ Stop</button>
+        <button class="btn-ctrl primary" id="pause-btn" onclick="togglePause()">⏸ Pause</button>
+        <button class="btn-ctrl" onclick="nextStep()">Skip ›</button>
+      </div>
+
+      <div class="steps-progress">${dots}</div>`;
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      if (isPaused) return;
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        currentStep++;
+        runStep();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const el = document.getElementById('timer-display');
+    const circle = document.getElementById('timer-circle');
+    if (el) el.textContent = formatTime(timeLeft);
+    if (circle) {
+      const circumference = 2 * Math.PI * 88;
+      const offset = circumference * (1 - timeLeft / totalTime);
+      circle.style.strokeDashoffset = offset;
+    }
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    const btn = document.getElementById('pause-btn');
+    if (btn) btn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+  }
+
+  function nextStep() {
+    clearInterval(timer);
+    currentStep++;
+    runStep();
+  }
+
+  function stopRunner() {
+    clearInterval(timer);
+    currentRoutine = null;
+    showPage('home');
+  }
+
+  function showCompletion() {
+    document.getElementById('runner-content').innerHTML = `
+      <div class="completion">
+        <div class="icon">🎉</div>
+        <h2>All done!</h2>
+        <p>You completed <strong>${currentRoutine.name}</strong>.<br/>Great job staying on track!</p>
+        <button class="btn-save" onclick="stopRunner()">Back to Routines</button>
+      </div>`;
+  }
+
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Init
+  renderRoutines();
+  resetForm();
+</script>
+</body>
+</html>
